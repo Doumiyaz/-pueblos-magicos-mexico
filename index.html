@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:mso="urn:schemas-microsoft-com:office:office" xmlns:msdt="uuid:C2F41010-65B3-11d1-A29F-00AA00C14882">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Registra y visualiza los 177 Pueblos Mágicos de México que has visitado">
+    <title>Mis Pueblos Mágicos de México - 177 Pueblos</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        :root { --primary-color: #d4145a; --secondary-color: #006847; --accent-color: #ffd700; --text-dark: #2c3e50; --text-light: #7f8c8d; --bg-light: #f8f9fa; --bg-white: #ffffff; --success: #27ae60; --danger: #e74c3c; --shadow: rgba(0, 0, 0, 0.1); --shadow-hover: rgba(0, 0, 0, 0.15); }
+        body { font-family: 'Poppins', sans-serif; color: var(--text-dark); background-color: var(--bg-light); line-height: 1.6; overflow-x: hidden; }
+        .container { max-width: 1200px; margin: 0 auto; padding: 0 20px; }
+        .header { background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%); color: white; padding: 30px 0; text-align: center; box-shadow: 0 4px 6px var(--shadow); }
+        .header h1 { font-size: 2.5rem; font-weight: 700; margin-bottom: 10px; }
+        .header h1 i { margin-right: 15px; }
+        .subtitle { font-size: 1.1rem; font-weight: 300; opacity: 0.95; }
+        .stats-bar { background: white; padding: 25px 0; box-shadow: 0 2px 4px var(--shadow); }
+        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 20px; }
+        .stat-card { display: flex; align-items: center; gap: 15px; padding: 15px; background: var(--bg-light); border-radius: 12px; transition: transform 0.3s ease; }
+        .stat-card:hover { transform: translateY(-3px); }
+        .stat-icon { font-size: 2rem; color: var(--primary-color); }
+        .stat-info { display: flex; flex-direction: column; }
+        .stat-number { font-size: 1.8rem; font-weight: 700; color: var(--text-dark); line-height: 1; }
+        .stat-label { font-size: 0.85rem; color: var(--text-light); text-transform: uppercase; letter-spacing: 0.5px; }
+        .tabs-container { background: white; border-bottom: 2px solid var(--bg-light); position: sticky; top: 0; z-index: 100; box-shadow: 0 2px 4px var(--shadow); }
+        .tabs { display: flex; gap: 5px; }
+        .tab-button { flex: 1; padding: 18px 25px; border: none; background: transparent; color: var(--text-light); font-size: 1rem; font-weight: 500; cursor: pointer; transition: all 0.3s ease; border-bottom: 3px solid transparent; display: flex; align-items: center; justify-content: center; gap: 10px; }
+        .tab-button i { font-size: 1.2rem; }
+        .tab-button:hover { color: var(--primary-color); background: var(--bg-light); }
+        .tab-button.active { color: var(--primary-color); border-bottom-color: var(--primary-color); background: var(--bg-light); }
+        .main-content { padding: 30px 0; min-height: calc(100vh - 400px); }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; animation: fadeIn 0.3s ease; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .controls { display: flex; gap: 15px; margin-bottom: 30px; flex-wrap: wrap; }
+        .search-box, .filter-box { flex: 1; min-width: 200px; position: relative; display: flex; align-items: center; background: white; border-radius: 10px; padding: 12px 15px; box-shadow: 0 2px 4px var(--shadow); }
+        .search-box i, .filter-box i { color: var(--text-light); margin-right: 10px; }
+        .search-box input, .filter-box select { flex: 1; border: none; outline: none; font-size: 1rem; font-family: 'Poppins', sans-serif; color: var(--text-dark); }
+        .btn-clear { padding: 12px 20px; background: var(--danger); color: white; border: none; border-radius: 10px; font-size: 1rem; font-weight: 500; cursor: pointer; display: flex; align-items: center; gap: 8px; transition: all 0.3s ease; box-shadow: 0 2px 4px var(--shadow); }
+        .btn-clear:hover { background: #c0392b; transform: translateY(-2px); box-shadow: 0 4px 8px var(--shadow-hover); }
+        .pueblos-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px; }
+        .pueblo-card { background: white; border-radius: 12px; padding: 20px; box-shadow: 0 2px 8px var(--shadow); transition: all 0.3s ease; cursor: pointer; border: 3px solid transparent; }
+        .pueblo-card:hover { transform: translateY(-5px); box-shadow: 0 8px 16px var(--shadow-hover); }
+        .pueblo-card.visited { border-color: var(--success); background: linear-gradient(135deg, #ffffff 0%, #e8f5e9 100%); }
+        .pueblo-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px; }
+        .pueblo-name { font-size: 1.2rem; font-weight: 600; color: var(--text-dark); flex: 1; }
+        .pueblo-checkbox { width: 24px; height: 24px; cursor: pointer; accent-color: var(--success); }
+        .pueblo-state { display: inline-flex; align-items: center; gap: 5px; font-size: 0.9rem; color: var(--text-light); margin-top: 8px; }
+        .pueblo-state i { color: var(--primary-color); }
+        .map-info { background: white; padding: 15px; border-radius: 10px; margin-bottom: 20px; box-shadow: 0 2px 4px var(--shadow); display: flex; align-items: center; gap: 10px; }
+        .map-info i { color: var(--primary-color); font-size: 1.2rem; }
+        #map { height: 600px; border-radius: 12px; box-shadow: 0 4px 12px var(--shadow); background: white; }
+        .footer { background: var(--text-dark); color: white; text-align: center; padding: 30px 0; margin-top: 50px; }
+        .footer-note { font-size: 0.85rem; color: var(--text-light); margin-top: 10px; }
+        @media (max-width: 768px) {
+            .header h1 { font-size: 1.8rem; }
+            .subtitle { font-size: 0.95rem; }
+            .stats-grid { grid-template-columns: 1fr; gap: 15px; }
+            .stat-card { padding: 12px; }
+            .stat-number { font-size: 1.5rem; }
+            .tab-button { padding: 15px 10px; font-size: 0.9rem; }
+            .tab-button span { display: none; }
+            .tab-button i { font-size: 1.5rem; }
+            .controls { flex-direction: column; }
+            .search-box, .filter-box, .btn-clear { width: 100%; min-width: unset; }
+            .pueblos-grid { grid-template-columns: 1fr; gap: 15px; }
+            .pueblo-card { padding: 15px; }
+            #map { height: 400px; }
+            .container { padding: 0 15px; }
+        }
+        @media (max-width: 480px) {
+            .header h1 { font-size: 1.5rem; }
+            .header { padding: 20px 0; }
+            .main-content { padding: 20px 0; }
+            .stat-icon { font-size: 1.5rem; }
+            .stat-number { font-size: 1.3rem; }
+            .pueblo-name { font-size: 1.1rem; }
+        }
+        .empty-state { text-align: center; padding: 50px 20px; color: var(--text-light); }
+        .empty-state i { font-size: 4rem; margin-bottom: 20px; opacity: 0.5; }
+        .empty-state h3 { font-size: 1.5rem; margin-bottom: 10px; }
+    </style>
+
+<!--[if gte mso 9]><xml>
+<mso:CustomDocumentProperties>
+<mso:_dlc_DocId msdt:dt="string">NSX2YFTTSVUD-1009100899-531379</mso:_dlc_DocId>
+<mso:_dlc_DocIdItemGuid msdt:dt="string">2cf3c8ea-7ba1-4e53-98c5-e9fc6b81c37c</mso:_dlc_DocIdItemGuid>
+<mso:_dlc_DocIdUrl msdt:dt="string">https://digitalizers.sharepoint.com/sites/MESgestion/_layouts/15/DocIdRedir.aspx?ID=NSX2YFTTSVUD-1009100899-531379, NSX2YFTTSVUD-1009100899-531379</mso:_dlc_DocIdUrl>
+</mso:CustomDocumentProperties>
+</xml><![endif]-->
+</head>
+<body>
+    <header class="header">
+        <div class="container">
+            <h1><i class="fas fa-map-marked-alt"></i> Mis Pueblos Mágicos</h1>
+            <p class="subtitle">Explora y registra tu recorrido por México - 177 Pueblos Mágicos</p>
+        </div>
+    </header>
+
+    <div class="stats-bar">
+        <div class="container">
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-icon"><i class="fas fa-check-circle"></i></div>
+                    <div class="stat-info">
+                        <span class="stat-number" id="visitedCount">0</span>
+                        <span class="stat-label">Visitados</span>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon"><i class="fas fa-list"></i></div>
+                    <div class="stat-info">
+                        <span class="stat-number" id="totalCount">0</span>
+                        <span class="stat-label">Total</span>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon"><i class="fas fa-percentage"></i></div>
+                    <div class="stat-info">
+                        <span class="stat-number" id="percentage">0%</span>
+                        <span class="stat-label">Progreso</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="tabs-container">
+        <div class="container">
+            <div class="tabs">
+                <button class="tab-button active" data-tab="list">
+                    <i class="fas fa-list"></i>
+                    <span>Lista</span>
+                </button>
+                <button class="tab-button" data-tab="map">
+                    <i class="fas fa-map"></i>
+                    <span>Mapa</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <main class="main-content">
+        <div class="container">
+            <div class="tab-content active" id="listTab">
+                <div class="controls">
+                    <div class="search-box">
+                        <i class="fas fa-search"></i>
+                        <input type="text" id="searchInput" placeholder="Buscar pueblo mágico...">
+                    </div>
+                    <div class="filter-box">
+                        <i class="fas fa-filter"></i>
+                        <select id="stateFilter">
+                            <option value="">Todos los estados</option>
+                        </select>
+                    </div>
+                    <button class="btn-clear" id="clearAll">
+                        <i class="fas fa-times-circle"></i>
+                        <span>Limpiar</span>
+                    </button>
+                </div>
+                <div class="pueblos-grid" id="pueblosList"></div>
+            </div>
+
+            <div class="tab-content" id="mapTab">
+                <div class="map-info">
+                    <p><i class="fas fa-info-circle"></i> Marcadores verdes: Pueblos visitados</p>
+                </div>
+                <div id="map"></div>
+            </div>
+        </div>
+    </main>
+
+    <footer class="footer">
+        <div class="container">
+            <p>&copy; 2024 Mis Pueblos Mágicos de México</p>
+            <p class="footer-note">Datos almacenados localmente en tu dispositivo</p>
+        </div>
+    </footer>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+const pueblosMagicos=[{id:1,name:"Calvillo",state:"Aguascalientes",lat:21.8469,lng:-102.7186},{id:2,name:"Pabellón de Hidalgo",state:"Aguascalientes",lat:22.15,lng:-102.35},{id:3,name:"Real de Asientos",state:"Aguascalientes",lat:22.2389,lng:-102.0889},{id:4,name:"San José de Gracia",state:"Aguascalientes",lat:22.1431,lng:-102.4089},{id:5,name:"Tecate",state:"Baja California",lat:32.5772,lng:-116.6289},{id:6,name:"Loreto",state:"Baja California Sur",lat:26.0119,lng:-111.3478},{id:7,name:"Santa Rosalía",state:"Baja California Sur",lat:27.3333,lng:-112.2667},{id:8,name:"Todos Santos",state:"Baja California Sur",lat:23.4453,lng:-110.2261},{id:9,name:"Candelaria",state:"Campeche",lat:18.1667,lng:-91.05},{id:10,name:"Isla Aguada",state:"Campeche",lat:18.7667,lng:-91.4833},{id:11,name:"Palizada",state:"Campeche",lat:18.25,lng:-92.0833},{id:12,name:"Chiapa de Corzo",state:"Chiapas",lat:16.7064,lng:-93.0114},{id:13,name:"Comitán",state:"Chiapas",lat:16.25,lng:-92.1333},{id:14,name:"Copainalá",state:"Chiapas",lat:17.1667,lng:-93.2833},{id:15,name:"Ocozocoautla de Espinosa",state:"Chiapas",lat:16.7667,lng:-93.3833},{id:16,name:"Palenque",state:"Chiapas",lat:17.5089,lng:-91.9819},{id:17,name:"San Cristóbal de las Casas",state:"Chiapas",lat:16.737,lng:-92.6376},{id:18,name:"Batopilas",state:"Chihuahua",lat:27.0333,lng:-107.7333},{id:19,name:"Casas Grandes",state:"Chihuahua",lat:30.3667,lng:-107.95},{id:20,name:"Creel",state:"Chihuahua",lat:27.75,lng:-107.6333},{id:21,name:"Guachochi",state:"Chihuahua",lat:26.8167,lng:-107.0667},{id:22,name:"Hidalgo del Parral",state:"Chihuahua",lat:26.9333,lng:-105.6667},{id:23,name:"Arteaga",state:"Coahuila",lat:25.4833,lng:-100.8167},{id:24,name:"Candela",state:"Coahuila",lat:26.8833,lng:-100.6667},{id:25,name:"Cuatro Ciénegas",state:"Coahuila",lat:26.9833,lng:-102.0667},{id:26,name:"General Cepeda",state:"Coahuila",lat:25.3667,lng:-101.4833},{id:27,name:"Guerrero",state:"Coahuila",lat:28.5667,lng:-100.3833},{id:28,name:"Múzquiz",state:"Coahuila",lat:27.8833,lng:-101.5167},{id:29,name:"Parras",state:"Coahuila",lat:25.4333,lng:-102.1833},{id:30,name:"Viesca",state:"Coahuila",lat:25.3333,lng:-102.8},{id:31,name:"Comala",state:"Colima",lat:19.3167,lng:-103.75},{id:32,name:"Mapimí",state:"Durango",lat:25.8333,lng:-103.85},{id:33,name:"Nombre de Dios",state:"Durango",lat:23.85,lng:-104.2333},{id:34,name:"Aculco",state:"Estado de México",lat:20.0833,lng:-99.8333},{id:35,name:"El Oro",state:"Estado de México",lat:19.8,lng:-100.1333},{id:36,name:"Ixtapan de la Sal",state:"Estado de México",lat:18.8333,lng:-99.6833},{id:37,name:"Jilotepec",state:"Estado de México",lat:19.95,lng:-99.5333},{id:38,name:"Malinalco",state:"Estado de México",lat:18.95,lng:-99.5},{id:39,name:"Metepec",state:"Estado de México",lat:19.25,lng:-99.6},{id:40,name:"Otumba",state:"Estado de México",lat:19.7,lng:-98.75},{id:41,name:"San Juan Teotihuacán",state:"Estado de México",lat:19.6833,lng:-98.8667},{id:42,name:"Tepotzotlán",state:"Estado de México",lat:19.7167,lng:-99.2167},{id:43,name:"Tonatico",state:"Estado de México",lat:18.8,lng:-99.65},{id:44,name:"Valle de Bravo",state:"Estado de México",lat:19.1833,lng:-100.1333},{id:45,name:"Villa del Carbón",state:"Estado de México",lat:19.7333,lng:-99.4667},{id:46,name:"Comonfort",state:"Guanajuato",lat:20.7167,lng:-100.75},{id:47,name:"Dolores Hidalgo",state:"Guanajuato",lat:21.1561,lng:-100.9314},{id:48,name:"Jalpa de Cánovas",state:"Guanajuato",lat:21.0167,lng:-101.4167},{id:49,name:"Mineral de Pozos",state:"Guanajuato",lat:21.3167,lng:-100.5167},{id:50,name:"Salvatierra",state:"Guanajuato",lat:20.2167,lng:-100.8833},{id:51,name:"Yuriria",state:"Guanajuato",lat:20.2167,lng:-101.1333},{id:52,name:"Ixcateopan de Cuauhtémoc",state:"Guerrero",lat:18.4167,lng:-99.8},{id:53,name:"Taxco",state:"Guerrero",lat:18.5567,lng:-99.6056},{id:54,name:"Zihuatanejo",state:"Guerrero",lat:17.6417,lng:-101.5517},{id:55,name:"Acaxochitlán",state:"Hidalgo",lat:20.1667,lng:-98.2},{id:56,name:"Huasca de Ocampo",state:"Hidalgo",lat:20.2,lng:-98.5667},{id:57,name:"Huichapan",state:"Hidalgo",lat:20.375,lng:-99.65},{id:58,name:"Metztitlán",state:"Hidalgo",lat:20.5833,lng:-98.7667},{id:59,name:"Mineral del Chico",state:"Hidalgo",lat:20.1833,lng:-98.7167},{id:60,name:"Real del Monte",state:"Hidalgo",lat:20.1333,lng:-98.6833},{id:61,name:"Tecozautla",state:"Hidalgo",lat:20.5333,lng:-99.6333},{id:62,name:"Zempoala",state:"Hidalgo",lat:19.9167,lng:-98.6667},{id:63,name:"Zimapán",state:"Hidalgo",lat:20.7333,lng:-99.3833},{id:64,name:"Ajijic",state:"Jalisco",lat:20.3,lng:-103.2667},{id:65,name:"Cocula",state:"Jalisco",lat:20.3833,lng:-103.8},{id:66,name:"Lagos de Moreno",state:"Jalisco",lat:21.35,lng:-101.9167},{id:67,name:"Mascota",state:"Jalisco",lat:20.5333,lng:-104.7833},{id:68,name:"Mazamitla",state:"Jalisco",lat:19.9167,lng:-103.0167},{id:69,name:"San Sebastián del Oeste",state:"Jalisco",lat:20.7667,lng:-104.7333},{id:70,name:"Sayula",state:"Jalisco",lat:19.8833,lng:-103.6},{id:71,name:"Talpa de Allende",state:"Jalisco",lat:20.3833,lng:-104.8333},{id:72,name:"Tapalpa",state:"Jalisco",lat:19.95,lng:-103.7667},{id:73,name:"Temacapulín",state:"Jalisco",lat:21.05,lng:-102.6833},{id:74,name:"Tequila",state:"Jalisco",lat:20.8833,lng:-103.8333},{id:75,name:"Tlaquepaque",state:"Jalisco",lat:20.6167,lng:-103.3167},{id:76,name:"Angangueo",state:"Michoacán",lat:19.6333,lng:-100.2833},{id:77,name:"Cotija",state:"Michoacán",lat:19.8167,lng:-102.7},{id:78,name:"Cuitzeo del Porvenir",state:"Michoacán",lat:19.9667,lng:-101.1333},{id:79,name:"Jiquilpan",state:"Michoacán",lat:20.1333,lng:-102.7167},{id:80,name:"Paracho",state:"Michoacán",lat:19.65,lng:-102.05},{id:81,name:"Pátzcuaro",state:"Michoacán",lat:19.5167,lng:-101.6167},{id:82,name:"Santa Clara del Cobre",state:"Michoacán",lat:19.4,lng:-101.6333},{id:83,name:"Tacámbaro",state:"Michoacán",lat:19.2333,lng:-101.4667},{id:84,name:"Tlalpujahua",state:"Michoacán",lat:19.8,lng:-100.1833},{id:85,name:"Tzintzuntzan",state:"Michoacán",lat:19.6333,lng:-101.5833},{id:86,name:"Tepoztlán",state:"Morelos",lat:18.9833,lng:-99.0833},{id:87,name:"Tlaltizapán de Zapata",state:"Morelos",lat:18.6833,lng:-99.1167},{id:88,name:"Tlayacapan",state:"Morelos",lat:18.95,lng:-98.9833},{id:89,name:"Xochitepec",state:"Morelos",lat:18.7833,lng:-99.2333},{id:90,name:"Ahuacatlán",state:"Nayarit",lat:21.05,lng:-104.4667},{id:91,name:"Amatlán de Cañas",state:"Nayarit",lat:20.8,lng:-104.4},{id:92,name:"Compostela",state:"Nayarit",lat:21.2333,lng:-104.9},{id:93,name:"Ixtlán del Río",state:"Nayarit",lat:21.0333,lng:-104.3667},{id:94,name:"Jala",state:"Nayarit",lat:21.0667,lng:-104.3833},{id:95,name:"Mexcaltitán",state:"Nayarit",lat:21.8833,lng:-105.4667},{id:96,name:"Puerto Balleto",state:"Nayarit",lat:21.5333,lng:-106.6167},{id:97,name:"San Blas",state:"Nayarit",lat:21.5417,lng:-105.2842},{id:98,name:"Sayulita",state:"Nayarit",lat:20.8667,lng:-105.45},{id:99,name:"Bustamante",state:"Nuevo León",lat:26.55,lng:-100.5167},{id:100,name:"General Terán",state:"Nuevo León",lat:25.25,lng:-99.6833},{id:101,name:"General Zaragoza",state:"Nuevo León",lat:23.95,lng:-99.8},{id:102,name:"Linares",state:"Nuevo León",lat:24.8667,lng:-99.5667},{id:103,name:"Santiago",state:"Nuevo León",lat:25.4333,lng:-100.15},{id:104,name:"Capulálpam de Méndez",state:"Oaxaca",lat:17.3,lng:-96.4333},{id:105,name:"Huautla de Jiménez",state:"Oaxaca",lat:18.1333,lng:-96.8333},{id:106,name:"Juquila",state:"Oaxaca",lat:16.2333,lng:-97.2833},{id:107,name:"Mazunte",state:"Oaxaca",lat:15.6667,lng:-96.55},{id:108,name:"Mitla",state:"Oaxaca",lat:16.9281,lng:-96.3597},{id:109,name:"Teposcolula",state:"Oaxaca",lat:17.5167,lng:-97.4833},{id:110,name:"Atlixco",state:"Puebla",lat:18.9,lng:-98.4333},{id:111,name:"Chignahuapan",state:"Puebla",lat:19.8333,lng:-98.0333},{id:112,name:"Cholula",state:"Puebla",lat:19.0667,lng:-98.3},{id:113,name:"Cuetzalan del Progreso",state:"Puebla",lat:20.0333,lng:-97.5167},{id:114,name:"Huauchinango",state:"Puebla",lat:20.1833,lng:-98.05},{id:115,name:"Huejotzingo",state:"Puebla",lat:19.15,lng:-98.4},{id:116,name:"Pahuatlán",state:"Puebla",lat:20.2833,lng:-98.1833},{id:117,name:"Tetela de Ocampo",state:"Puebla",lat:19.8167,lng:-97.8},{id:118,name:"Teziutlán",state:"Puebla",lat:19.8167,lng:-97.3667},{id:119,name:"Tlatlauquitepec",state:"Puebla",lat:19.8167,lng:-97.5167},{id:120,name:"Xicotepec",state:"Puebla",lat:20.2667,lng:-97.9667},{id:121,name:"Zacatlán",state:"Puebla",lat:19.9333,lng:-97.9667},{id:122,name:"Zautla",state:"Puebla",lat:19.7333,lng:-97.6833},{id:123,name:"Amealco",state:"Querétaro",lat:20.1833,lng:-100.15},{id:124,name:"Bernal",state:"Querétaro",lat:20.7333,lng:-99.95},{id:125,name:"Cadereyta",state:"Querétaro",lat:20.7,lng:-99.8167},{id:126,name:"Jalpan de Serra",state:"Querétaro",lat:21.2167,lng:-99.4667},{id:127,name:"Pinal de Amoles",state:"Querétaro",lat:21.1333,lng:-99.6333},{id:128,name:"San Joaquín",state:"Querétaro",lat:20.9167,lng:-99.5667},{id:129,name:"Tequisquiapan",state:"Querétaro",lat:20.5167,lng:-99.8833},{id:130,name:"Bacalar",state:"Quintana Roo",lat:18.6833,lng:-88.3833},{id:131,name:"Cozumel",state:"Quintana Roo",lat:20.5083,lng:-86.9458},{id:132,name:"Isla Mujeres",state:"Quintana Roo",lat:21.2311,lng:-86.7311},{id:133,name:"Tulum",state:"Quintana Roo",lat:20.2114,lng:-87.4653},{id:134,name:"Aquismón",state:"San Luis Potosí",lat:21.6,lng:-99.0333},{id:135,name:"Ciudad del Maíz",state:"San Luis Potosí",lat:22.4,lng:-99.5833},{id:136,name:"Real de Catorce",state:"San Luis Potosí",lat:23.6833,lng:-100.8833},{id:137,name:"Santa María del Río",state:"San Luis Potosí",lat:21.8,lng:-100.7333},{id:138,name:"Tierra Nueva",state:"San Luis Potosí",lat:22.6,lng:-100.9667},{id:139,name:"Xilitla",state:"San Luis Potosí",lat:21.3833,lng:-98.9833},{id:140,name:"Cosalá",state:"Sinaloa",lat:24.4167,lng:-106.6833},{id:141,name:"El Fuerte",state:"Sinaloa",lat:26.4167,lng:-108.6167},{id:142,name:"El Rosario",state:"Sinaloa",lat:22.9833,lng:-105.8667},{id:143,name:"Mocorito",state:"Sinaloa",lat:25.4833,lng:-107.9167},{id:144,name:"San Ignacio",state:"Sinaloa",lat:23.9167,lng:-106.4167},{id:145,name:"Álamos",state:"Sonora",lat:27.0167,lng:-108.9333},{id:146,name:"Magdalena de Kino",state:"Sonora",lat:30.6333,lng:-111.05},{id:147,name:"San Carlos",state:"Sonora",lat:27.95,lng:-111.0833},{id:148,name:"Ures",state:"Sonora",lat:29.4333,lng:-110.4},{id:149,name:"Frontera",state:"Tabasco",lat:18.55,lng:-92.65},{id:150,name:"Teapa",state:"Tabasco",lat:17.55,lng:-92.95},{id:151,name:"Mier",state:"Tamaulipas",lat:26.4333,lng:-99.15},{id:152,name:"Tula",state:"Tamaulipas",lat:23,lng:-99.7167},{id:153,name:"Huamantla",state:"Tlaxcala",lat:19.3167,lng:-97.9167},{id:154,name:"Ixtenco",state:"Tlaxcala",lat:19.25,lng:-97.9},{id:155,name:"Tlaxco",state:"Tlaxcala",lat:19.6167,lng:-98.1167},{id:156,name:"Coatepec",state:"Veracruz",lat:19.45,lng:-96.9667},{id:157,name:"Córdoba",state:"Veracruz",lat:18.8833,lng:-96.9333},{id:158,name:"Coscomatepec",state:"Veracruz",lat:19.0667,lng:-97.05},{id:159,name:"Naolinco de Victoria",state:"Veracruz",lat:19.65,lng:-96.9},{id:160,name:"Orizaba",state:"Veracruz",lat:18.85,lng:-97.1},{id:161,name:"Papantla",state:"Veracruz",lat:20.45,lng:-97.3167},{id:162,name:"Xico",state:"Veracruz",lat:19.4167,lng:-97},{id:163,name:"Zozocolco",state:"Veracruz",lat:20.1333,lng:-97.5833},{id:164,name:"Espita",state:"Yucatán",lat:21.0167,lng:-88.2833},{id:165,name:"Izamal",state:"Yucatán",lat:20.9333,lng:-89.0167},{id:166,name:"Maní",state:"Yucatán",lat:20.3833,lng:-89.45},{id:167,name:"Motul",state:"Yucatán",lat:21.0833,lng:-89.2833},{id:168,name:"Sisal",state:"Yucatán",lat:21.1667,lng:-90.0333},{id:169,name:"Tekax",state:"Yucatán",lat:20.2,lng:-89.2833},{id:170,name:"Valladolid",state:"Yucatán",lat:20.6833,lng:-88.2},{id:171,name:"Guadalupe",state:"Zacatecas",lat:22.75,lng:-102.5167},{id:172,name:"Jerez",state:"Zacatecas",lat:22.65,lng:-102.9833},{id:173,name:"Nochistlán",state:"Zacatecas",lat:21.3667,lng:-102.85},{id:174,name:"Pinos",state:"Zacatecas",lat:22.2833,lng:-101.5833},{id:175,name:"Sombrerete",state:"Zacatecas",lat:23.6333,lng:-103.6333},{id:176,name:"Teúl",state:"Zacatecas",lat:21.45,lng:-103.4},{id:177,name:"Villa",state:"Zacatecas",lat:22.3833,lng:-101.95}];
+
+let visitedPueblos=new Set(),map=null,markers=[];
+
+document.addEventListener('DOMContentLoaded',()=>{
+    loadVisitedPueblos();
+    initializeTabs();
+    initializeControls();
+    renderPueblos();
+    updateStats();
+    populateStateFilter();
+});
+
+function loadVisitedPueblos(){const saved=localStorage.getItem('visitedPueblos');if(saved)visitedPueblos=new Set(JSON.parse(saved))}
+function saveVisitedPueblos(){localStorage.setItem('visitedPueblos',JSON.stringify([...visitedPueblos]))}
+
+function initializeTabs(){
+    const tabButtons=document.querySelectorAll('.tab-button');
+    tabButtons.forEach(button=>{
+        button.addEventListener('click',()=>{
+            const tabName=button.dataset.tab;
+            tabButtons.forEach(btn=>btn.classList.remove('active'));
+            button.classList.add('active');
+            document.querySelectorAll('.tab-content').forEach(content=>content.classList.remove('active'));
+            if(tabName==='list'){
+                document.getElementById('listTab').classList.add('active');
+            }else if(tabName==='map'){
+                document.getElementById('mapTab').classList.add('active');
+                initializeMap();
+            }
+        });
+    });
+}
+
+function initializeControls(){
+    const searchInput=document.getElementById('searchInput');
+    const stateFilter=document.getElementById('stateFilter');
+    const clearButton=document.getElementById('clearAll');
+    
+    searchInput.addEventListener('input',(e)=>renderPueblos(e.target.value.toLowerCase(),stateFilter.value));
+    stateFilter.addEventListener('change',(e)=>renderPueblos(searchInput.value.toLowerCase(),e.target.value));
+    
+    clearButton.addEventListener('click',()=>{
+        if(visitedPueblos.size===0)return;
+        if(confirm('¿Estás seguro de que quieres limpiar todos los pueblos visitados?')){
+            visitedPueblos.clear();
+            saveVisitedPueblos();
+            renderPueblos();
+            updateStats();
+            if(map)updateMapMarkers();
+        }
+    });
+}
+
+function populateStateFilter(){
+    const stateFilter=document.getElementById('stateFilter');
+    const states=[...new Set(pueblosMagicos.map(p=>p.state))].sort();
+    states.forEach(state=>{
+        const option=document.createElement('option');
+        option.value=state;
+        option.textContent=state;
+        stateFilter.appendChild(option);
+    });
+}
+
+function renderPueblos(searchTerm='',stateFilter=''){
+    const pueblosList=document.getElementById('pueblosList');
+    let filteredPueblos=pueblosMagicos.filter(pueblo=>{
+        const matchesSearch=pueblo.name.toLowerCase().includes(searchTerm)||pueblo.state.toLowerCase().includes(searchTerm);
+        const matchesState=!stateFilter||pueblo.state===stateFilter;
+        return matchesSearch&&matchesState;
+    });
+    
+    if(filteredPueblos.length===0){
+        pueblosList.innerHTML=`<div class="empty-state" style="grid-column: 1/-1;"><i class="fas fa-search"></i><h3>No se encontraron resultados</h3><p>Intenta con otros términos de búsqueda</p></div>`;
+        return;
+    }
+    
+    pueblosList.innerHTML=filteredPueblos.map(pueblo=>`
+        <div class="pueblo-card ${visitedPueblos.has(pueblo.id)?'visited':''}" data-id="${pueblo.id}">
+            <div class="pueblo-header">
+                <h3 class="pueblo-name">${pueblo.name}</h3>
+                <input type="checkbox" class="pueblo-checkbox" ${visitedPueblos.has(pueblo.id)?'checked':''} data-id="${pueblo.id}">
+            </div>
+            <div class="pueblo-state"><i class="fas fa-map-marker-alt"></i><span>${pueblo.state}</span></div>
+        </div>
+    `).join('');
+    
+    document.querySelectorAll('.pueblo-checkbox').forEach(checkbox=>{
+        checkbox.addEventListener('change',handlePuebloToggle);
+    });
+    
+    document.querySelectorAll('.pueblo-card').forEach(card=>{
+        card.addEventListener('click',(e)=>{
+            if(e.target.classList.contains('pueblo-checkbox'))return;
+            const checkbox=card.querySelector('.pueblo-checkbox');
+            checkbox.checked=!checkbox.checked;
+            handlePuebloToggle({target:checkbox});
+        });
+    });
+}
+
+function handlePuebloToggle(e){
+    const puebloId=parseInt(e.target.dataset.id);
+    const card=e.target.closest('.pueblo-card');
+    if(e.target.checked){
+        visitedPueblos.add(puebloId);
+        card.classList.add('visited');
+    }else{
+        visitedPueblos.delete(puebloId);
+        card.classList.remove('visited');
+    }
+    saveVisitedPueblos();
+    updateStats();
+    if(map)updateMapMarkers();
+}
+
+function updateStats(){
+    const totalCount=pueblosMagicos.length;
+    const visitedCount=visitedPueblos.size;
+    const percentage=totalCount>0?Math.round((visitedCount/totalCount)*100):0;
+    document.getElementById('visitedCount').textContent=visitedCount;
+    document.getElementById('totalCount').textContent=totalCount;
+    document.getElementById('percentage').textContent=`${percentage}%`;
+}
+
+function initializeMap(){
+    if(map){
+        updateMapMarkers();
+        return;
+    }
+    map=L.map('map').setView([23.6345,-102.5528],5);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{
+        attribution:'© OpenStreetMap contributors',
+        maxZoom:18
+    }).addTo(map);
+    updateMapMarkers();
+    setTimeout(()=>map.invalidateSize(),300);
+}
+
+function updateMapMarkers(){
+    if(!map)return;
+    markers.forEach(marker=>map.removeLayer(marker));
+    markers=[];
+    const visitedPueblosData=pueblosMagicos.filter(p=>visitedPueblos.has(p.id));
+    if(visitedPueblosData.length===0)return;
+    visitedPueblosData.forEach(pueblo=>{
+        const greenIcon=L.icon({
+            iconUrl:'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-green.png',
+            shadowUrl:'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
+            iconSize:[25,41],
+            iconAnchor:[12,41],
+            popupAnchor:[1,-34],
+            shadowSize:[41,41]
+        });
+        const marker=L.marker([pueblo.lat,pueblo.lng],{icon:greenIcon})
+            .bindPopup(`<div style="text-align: center;"><strong style="font-size: 1.1rem;">${pueblo.name}</strong><br><span style="color: #666;">${pueblo.state}</span></div>`)
+            .addTo(map);
+        markers.push(marker);
+    });
+    if(markers.length>0){
+        const group=L.featureGroup(markers);
+        map.fitBounds(group.getBounds().pad(0.1));
+    }
+}
+    </script>
+</body>
+</html>
